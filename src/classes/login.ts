@@ -5,7 +5,7 @@ import cheerio, { CheerioAPI } from 'cheerio';
 import { v4 as uuidv4 } from 'uuid';
 import { QuizOptions } from '../interface';
 import { getCaptcha } from './captcha';
-import { CaptchaRequest, CaptchaResponse } from '@stormeio-llc/harvester-manager';
+import { CaptchaRequest, CaptchaResponse } from '../interface';
 
 import config from '../../config/config';
 import { Quiz } from './quiz';

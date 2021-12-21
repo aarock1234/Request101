@@ -4,7 +4,7 @@ import request, { RequestPromiseAPI } from 'request-promise';
 import { getAnswer } from '../answer';
 import { QuizOptions } from '../interface';
 import cheerio, { CheerioAPI, Element } from 'cheerio';
-import { CaptchaRequest, CaptchaResponse } from '@stormeio-llc/harvester-manager';
+import { CaptchaRequest, CaptchaResponse } from '../interface';
 import { getCaptcha } from './captcha';
 
 interface Answer {
