@@ -7,7 +7,9 @@ import { QuizOptions } from './interface';
 
 consoleStamp(console, 'HH:MM:ss.l' as any);
 
-if (process.env.verbose.toLowerCase() === 'false') {
+console.log(process.env);
+
+if (process.env.verbose?.toLowerCase() === 'false') {
 	console.info = function () {};
 }
 
