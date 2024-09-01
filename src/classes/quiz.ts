@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { Headers, Response } from 'request';
 import request, { RequestPromiseAPI } from 'request-promise';
-import cheerio, { CheerioAPI, Element } from 'cheerio';
+import * as cheerio from 'cheerio';
 
 import { getAnswer } from '../answer';
 import { QuizOptions } from '../interface';
@@ -89,7 +89,7 @@ export class Quiz extends EventEmitter {
 	}
 
 	async parseAnswer(response: Response): Promise<Answer> {
-		const $: CheerioAPI = cheerio.load(response.body);
+		const $: cheerio.Root = cheerio.load(response.body);
 		const question: string = $('.quizQuestion').text();
 		const questionId: string = $('#questionId').val() as string;
 		if (!question) {
@@ -98,7 +98,7 @@ export class Quiz extends EventEmitter {
 		console.log(`Found Question [${questionId}]: ${question}`);
 
 		const answer: string = getAnswer(question);
-		let answerTextElement: Element;
+		let answerTextElement: cheerio.Element;
 		$('.answerText').each((_, answerTextElem) => {
 			if ($(answerTextElem).text().includes(answer)) {
 				answerTextElement = answerTextElem;
@@ -157,7 +157,7 @@ export class Quiz extends EventEmitter {
 			'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION'
 		);
 
-		const $: CheerioAPI = cheerio.load(response.body);
+		const $: cheerio.Root = cheerio.load(response.body);
 		const tFormData = $('input[name="t:formdata"]').val() as string;
 		const tAC = $('input[name="t:ac"]').val() as string;
 		console.info(`Found 't:formdata' Value: ${tFormData}`);
@@ -299,7 +299,7 @@ export class Quiz extends EventEmitter {
 			`https://www.wizard101.com/quiz/trivia/game/wizard101-${quiz}-trivia`
 		);
 
-		const $: CheerioAPI = cheerio.load(response.body);
+		const $: cheerio.Root = cheerio.load(response.body);
 		const quizScore: string = $('.quizScore').text();
 
 		console.log(`Completed ${quiz} Quiz: ${quizScore}`);

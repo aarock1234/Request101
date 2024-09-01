@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { Headers, Response } from 'request';
 import request, { RequestPromiseAPI } from 'request-promise';
-import cheerio, { CheerioAPI } from 'cheerio';
+import * as cheerio from 'cheerio';
 import { v4 as uuidv4 } from 'uuid';
 
 import { QuizOptions } from '../interface';
@@ -71,7 +71,7 @@ export class LoginAndComplete extends EventEmitter {
 
 		const response: Response = await this.client.get('https://www.wizard101.com/game');
 
-		const $: CheerioAPI = cheerio.load(response.body);
+		const $: cheerio.Root = cheerio.load(response.body);
 		this.tFormData = $('input[name="t:formdata"]').val() as string;
 		this.tAC = $('input[name="t:ac"]').val() as string;
 		this.stk = response.headers['set-cookie'].find((cookie: string) => cookie.includes('stk'));
@@ -118,7 +118,7 @@ export class LoginAndComplete extends EventEmitter {
 			'https://www.wizard101.com/auth/popup/QuarantinedLogin/game?fpRedirectUrl=%2Fgame&reset=1&fpPopup=1'
 		);
 
-		const $: CheerioAPI = cheerio.load(response.body);
+		const $: cheerio.Root = cheerio.load(response.body);
 		this.tFormData = $('input[name="t:formdata"]').val() as string;
 		this.tAC = $('input[name="t:ac"]').val() as string;
 		console.info(`Found 't:formdata' Value: ${this.tFormData}`);
