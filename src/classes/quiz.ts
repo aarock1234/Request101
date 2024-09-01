@@ -1,11 +1,13 @@
 import { EventEmitter } from 'events';
 import { Headers, Response } from 'request';
 import request, { RequestPromiseAPI } from 'request-promise';
+import cheerio, { CheerioAPI, Element } from 'cheerio';
+
 import { getAnswer } from '../answer';
 import { QuizOptions } from '../interface';
-import cheerio, { CheerioAPI, Element } from 'cheerio';
 import { CaptchaRequest, CaptchaResponse } from '../interface';
 import { getCaptcha } from './captcha';
+import { sleep } from '../utils/utils';
 
 interface Answer {
 	questionId: string;
@@ -34,7 +36,7 @@ export class Quiz extends EventEmitter {
 	postHeaders: Headers = {
 		Host: 'www.wizard101.com',
 		'cache-control': 'max-age=0',
-		'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+		'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
 		'sec-ch-ua-mobile': '?0',
 		'upgrade-insecure-requests': '1',
 		origin: 'https://www.wizard101.com',
@@ -64,11 +66,11 @@ export class Quiz extends EventEmitter {
 			headers: {
 				Host: 'www.wizard101.com',
 				'cache-control': 'max-age=0',
-				'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+				'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
 				'sec-ch-ua-mobile': '?0',
 				'upgrade-insecure-requests': '1',
 				'user-agent':
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36',
+					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36',
 				accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 				'sec-fetch-site': 'same-origin',
 				'sec-fetch-mode': 'navigate',
@@ -138,12 +140,12 @@ export class Quiz extends EventEmitter {
 			headers: this.postHeaders,
 			form: {
 				't:ac': answer.tAC,
-				't:submit': 'submit',
+				't:submit': '["continue","continue"]',
 				stk: answer.stk,
 				't:formdata': answer.tFormData,
 				questionId: answer.questionId,
 				answerId: answer.answerId,
-				submit: '',
+				continue: '',
 			},
 		});
 	}
@@ -163,25 +165,28 @@ export class Quiz extends EventEmitter {
 
 		return {
 			tFormData,
-			tAC
-		} as Answer
+			tAC,
+		} as Answer;
 	}
 
-	async submitLoginCaptcha(tInfo: Answer): Promise<void> {
-		console.log('Getting Captcha');
+	async submitLoginCaptcha(tInfo: Answer, captchaToken?: string): Promise<void> {
+		if (!captchaToken) {
+			console.log('Getting Captcha');
 
-		const captchaRequest: CaptchaRequest = {
-			id: this.id,
-			type: 2,
-			site: 'Wizard101',
-			properties: {
-				url: 'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION',
-				sitekey: '6LfUFE0UAAAAAGoVniwSC9-MtgxlzzAb5dnr9WWY',
-			},
-		};
+			const captchaRequest: CaptchaRequest = {
+				id: this.id,
+				type: 2,
+				site: 'Wizard101',
+				properties: {
+					url: 'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION',
+					sitekey: '6LfUFE0UAAAAAGoVniwSC9-MtgxlzzAb5dnr9WWY',
+				},
+			};
 
-		const gRecaptchaResponse: CaptchaResponse = await getCaptcha(captchaRequest);
-		console.info(`Got Captcha: ${gRecaptchaResponse.token}`);
+			const gRecaptchaResponse: CaptchaResponse = await getCaptcha(captchaRequest);
+			captchaToken = gRecaptchaResponse.token;
+			console.info(`Got Captcha: ${captchaToken}`);
+		}
 
 		const stk: string =
 			this.options.Cookies.getCookies('https://www.wizard101.com/').find(
@@ -198,8 +203,8 @@ export class Quiz extends EventEmitter {
 				stk,
 				't:formdata': tInfo.tFormData,
 				fpShowRegister: false,
-				captchaToken: gRecaptchaResponse.token,
-				'g-recaptcha-response': gRecaptchaResponse.token,
+				captchaToken: captchaToken,
+				'g-recaptcha-response': captchaToken,
 				login: '',
 			},
 			headers: this.postHeaders,
@@ -230,23 +235,55 @@ export class Quiz extends EventEmitter {
 			return;
 		}
 
-		let quizDone: boolean = false;
+		let promises: Array<Promise<void>> = [];
+		let captchaToken: string;
 
-		do {
-			const answer: Answer = await this.parseAnswer(response);
-			if (!answer.questionId || !answer.answerId) {
-				console.log(`Unable to Parse Question in ${quiz} Quiz`);
-				return this.startQuiz(originalQuiz);
-			}
-			response = await this.submitAnswer(answer);
+		promises.push(
+			new Promise(async (resolve) => {
+				const captchaRequest: CaptchaRequest = {
+					id: this.id,
+					type: 2,
+					site: 'Wizard101',
+					properties: {
+						url: 'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION',
+						sitekey: '6LfUFE0UAAAAAGoVniwSC9-MtgxlzzAb5dnr9WWY',
+					},
+				};
 
-			if (response.body.includes('rewardText')) {
-				quizDone = true;
-			}
-		} while (!quizDone);
+				const gRecaptchaResponse: CaptchaResponse = await getCaptcha(captchaRequest);
+				console.info(`Got Captcha: ${gRecaptchaResponse.token}`);
+				captchaToken = gRecaptchaResponse.token;
+				resolve();
+			})
+		);
+
+		promises.push(
+			new Promise(async (resolve) => {
+				let quizDone: boolean = false;
+				do {
+					const answer: Answer = await this.parseAnswer(response);
+					if (!answer.questionId || !answer.answerId) {
+						console.log(`Unable to Parse Question in ${quiz} Quiz`);
+						return this.startQuiz(originalQuiz);
+					}
+
+					await sleep(parseInt(process.env.delay || '1000'));
+
+					response = await this.submitAnswer(answer);
+
+					if (response.body.includes('rewardText')) {
+						quizDone = true;
+					}
+				} while (!quizDone);
+				console.log(`Completed ${quiz} Quiz`);
+				resolve();
+			})
+		);
+
+		await Promise.all(promises);
 
 		const tInfo: Answer = await this.getPopup();
-		await this.submitLoginCaptcha(tInfo);
+		await this.submitLoginCaptcha(tInfo, captchaToken);
 
 		response = await this.client.get(
 			`https://www.wizard101.com/quiz/trivia/game/wizard101-${quiz}-trivia`

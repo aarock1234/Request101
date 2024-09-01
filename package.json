@@ -4,7 +4,7 @@
   "description": "Request based Wizard101 quiz bot.",
   "main": "src/index.js",
   "scripts": {
-    "start": "tsc && node src/index.js",
+    "start": "tsc && node --env-file=.env src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

@@ -1,29 +1,29 @@
 import { EventEmitter } from 'events';
 import requestPromise, { Options } from 'request-promise';
-import config from '../../config/config';
+
 import { CaptchaProperties, CaptchaRequest, CaptchaResponse } from '../interface';
 import { sleep } from '../utils/utils';
 
 export async function getCaptcha(request: CaptchaRequest): Promise<CaptchaResponse> {
 	return new Promise((resolve) => {
-		console.log('Queued Captcha for CapMonster (Wait 15-45 seconds)');
+		console.log('Queued Captcha for CapSolver (Wait 15-45 seconds)');
 
-		const capMonsterRequest: CapMonster = new CapMonster(config.capmonster, request);
+		const capSolverRequest: CapSolver = new CapSolver(process.env.capsolver, request);
 
-		capMonsterRequest.on('complete', (response: CaptchaResponse) => {
+		capSolverRequest.on('complete', (response: CaptchaResponse) => {
 			resolve(response);
 		});
 	});
 }
 
-class CapMonster extends EventEmitter {
+class CapSolver extends EventEmitter {
 	key: string;
 	cap: CaptchaRequest;
 	properties: CaptchaProperties;
 	queueToken: string;
 	recaptchaResponse: string;
-	in: string = 'https://api.capmonster.cloud/createTask';
-	out: string = 'https://api.capmonster.cloud/getTaskResult';
+	in: string = 'https://api.capsolver.com/createTask';
+	out: string = 'https://api.capsolver.com/getTaskResult';
 	constructor(key: string, request: CaptchaRequest) {
 		super();
 
@@ -51,23 +51,25 @@ class CapMonster extends EventEmitter {
 		switch (this.cap.type) {
 			case 1:
 			case 2:
-				requestOptions.json.task.type = 'NoCaptchaTask';
+				requestOptions.json.task.type = 'ReCaptchaV2TaskProxyLess';
 				break;
 			case 3:
 			case 4:
-				requestOptions.json.task.type = 'RecaptchaV3TaskProxyless';
+				requestOptions.json.task.type = 'ReCaptchaV3TaskProxyLess';
 				break;
 			case 5:
-				requestOptions.json.task.type = 'HCaptchaTask';
+				requestOptions.json.task.type = 'HCaptchaTaskProxyLess';
 				break;
 		}
 
 		const response: Response = await requestPromise.post(requestOptions);
 		token = (response.body as any).taskId;
 
-		!token ? (() => {
-			throw new Error('(CapMonster) Captcha Failed to Solve [1]')
-		})() : null;
+		!token
+			? (() => {
+					throw new Error('(CapSolver) Captcha Failed to Solve [1]');
+			  })()
+			: null;
 
 		return token;
 	}
@@ -85,7 +87,7 @@ class CapMonster extends EventEmitter {
 		};
 
 		const response: Response = await requestPromise.post(requestOptions);
-		
+
 		switch ((response.body as any).status) {
 			case 'processing':
 				await sleep(2000);
@@ -94,7 +96,12 @@ class CapMonster extends EventEmitter {
 				recaptchaResponse = (response.body as any).solution.gRecaptchaResponse;
 				break;
 			default:
-				throw new Error('(CapMonster) Captcha Failed to Solve [2]');
+				console.log(response.body);
+				throw new Error(
+					'(CapSolver) Captcha Failed to Solve [2] (Status: ' +
+						(response.body as any).status +
+						')'
+				);
 		}
 
 		return recaptchaResponse;

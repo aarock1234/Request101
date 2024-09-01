@@ -3,11 +3,10 @@ import { Headers, Response } from 'request';
 import request, { RequestPromiseAPI } from 'request-promise';
 import cheerio, { CheerioAPI } from 'cheerio';
 import { v4 as uuidv4 } from 'uuid';
+
 import { QuizOptions } from '../interface';
 import { getCaptcha } from './captcha';
 import { CaptchaRequest, CaptchaResponse } from '../interface';
-
-import config from '../../config/config';
 import { Quiz } from './quiz';
 
 export class LoginAndComplete extends EventEmitter {
@@ -15,17 +14,18 @@ export class LoginAndComplete extends EventEmitter {
 	client: RequestPromiseAPI<any>;
 	id: string = uuidv4();
 	tAC: string;
+	stk: string;
 	tFormData: string;
 	gRecaptchaResponse: CaptchaResponse;
 	postHeaders: Headers = {
 		Host: 'www.wizard101.com',
 		'content-type': 'application/x-www-form-urlencoded',
 		'cache-control': 'max-age=0',
-		'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+		'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
 		'sec-ch-ua-mobile': '?0',
 		'upgrade-insecure-requests': '1',
 		'user-agent':
-			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36',
+			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36',
 		accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 		'sec-fetch-site': 'same-origin',
 		'sec-fetch-mode': 'navigate',
@@ -48,11 +48,11 @@ export class LoginAndComplete extends EventEmitter {
 			headers: {
 				Host: 'www.wizard101.com',
 				'cache-control': 'max-age=0',
-				'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+				'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
 				'sec-ch-ua-mobile': '?0',
 				'upgrade-insecure-requests': '1',
 				'user-agent':
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36',
+					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36',
 				accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 				'sec-fetch-site': 'same-origin',
 				'sec-fetch-mode': 'navigate',
@@ -74,6 +74,9 @@ export class LoginAndComplete extends EventEmitter {
 		const $: CheerioAPI = cheerio.load(response.body);
 		this.tFormData = $('input[name="t:formdata"]').val() as string;
 		this.tAC = $('input[name="t:ac"]').val() as string;
+		this.stk = response.headers['set-cookie'].find((cookie: string) => cookie.includes('stk'));
+
+		console.info(`Found 't:stk' value: ${this.stk}`);
 		console.info(`Found 't:formdata' Value: ${this.tFormData}`);
 		console.info(`Found 't:ac' Value: ${this.tAC}`);
 	}
@@ -86,11 +89,11 @@ export class LoginAndComplete extends EventEmitter {
 			form: {
 				't:ac': this.tAC,
 				't:submit': '',
-				stk: '',
+				stk: this.stk,
 				't:formdata': this.tFormData,
 				redirectUrl: 'https://www.wizard101.com/game?reset=1',
-				loginUserName: config.username,
-				loginPassword: config.password,
+				loginUserName: process.env.username,
+				loginPassword: process.env.password,
 			},
 			headers: this.postHeaders,
 		});
@@ -100,7 +103,7 @@ export class LoginAndComplete extends EventEmitter {
 			return this.submitLogin();
 		}
 
-		if (response.body.includes(config.username)) {
+		if (response.body.includes(process.env.username)) {
 			console.log('Successfully Logged in!');
 		} else {
 			console.log('Invalid username/password.');

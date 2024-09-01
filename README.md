@@ -20,7 +20,7 @@
 >
 > 5. Now you can open up the file explorer using the command `explorer .` on Windows and `open .` on a Mac *(don't forget the `.` after)*.
 > 6. Now navigate to the user folder.
-> 7. Be sure to have your CapMonster key ready as Wizard101 has plenty of captchas. Load a key here: https://capmonster.cloud/Dashboard. CapMonster costs about $0.60 per every 1000 captchas solved. It takes 11 captchas per 100 crowns, aka $0.6 for 9000+ crowns.
+> 7. Be sure to have your CapSolver key ready as Wizard101 has plenty of captchas. Load a key here: https://dashboard.capsolver.com/dashboard/overview. CapSolver costs about $0.60 per every 1000 captchas solved. It takes 11 captchas per 100 crowns, aka $0.6 for 9000+ crowns.
 > 8. Now you must navigate to the config folder and edit the *config.ts* file. You can edit this with any standard text editor. 
 > 9. Now that everything is set up go back to your command prompt/terminal and type this:
 >> `npm install`
