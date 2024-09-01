@@ -17,6 +17,7 @@
     "request-promise": "^4.2.6"
   },
   "devDependencies": {
+    "@types/cheerio": "^0.22.35",
     "@types/events": "^3.0.0",
     "@types/request-promise": "^4.1.47",
     "@types/uuid": "^8.3.0",
