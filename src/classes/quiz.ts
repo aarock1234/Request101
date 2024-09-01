@@ -235,6 +235,11 @@ export class Quiz extends EventEmitter {
 			return;
 		}
 
+		if (!response.body.includes(process.env.username)) {
+			console.log('Invalid username/password.');
+			process.exit(1);
+		}
+
 		let promises: Array<Promise<void>> = [];
 		let captchaToken: string;
 
@@ -261,6 +266,11 @@ export class Quiz extends EventEmitter {
 			new Promise(async (resolve) => {
 				let quizDone: boolean = false;
 				do {
+					if (!response.body.includes(process.env.username)) {
+						console.log('Invalid username/password.');
+						process.exit(1);
+					}
+
 					const answer: Answer = await this.parseAnswer(response);
 					if (!answer.questionId || !answer.answerId) {
 						console.log(`Unable to Parse Question in ${quiz} Quiz`);
