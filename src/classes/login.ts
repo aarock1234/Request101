@@ -147,7 +147,7 @@ export class LoginAndComplete extends EventEmitter {
 			url: 'https://www.wizard101.com/auth/popup/quarantinedlogin.theform',
 			form: {
 				't:ac': this.tAC,
-				't:submit': 'login',
+				't:submit': '["login","login"]',
 				stk: '',
 				't:formdata': this.tFormData,
 				loginSuccessTargetPopup: 'false',
