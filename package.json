@@ -1,26 +1,28 @@
 {
-  "name": "request101",
-  "version": "1.0.0",
-  "description": "Request based Wizard101 quiz bot.",
-  "main": "src/index.js",
-  "scripts": {
-    "start": "tsc && node --env-file=.env src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "cheerio": "^1.0.0-rc.10",
-    "console-stamp": "^3.0.2",
-    "events": "^3.3.0",
-    "request": "^2.88.2",
-    "request-promise": "^4.2.6"
-  },
-  "devDependencies": {
-    "@types/cheerio": "^0.22.35",
-    "@types/events": "^3.0.0",
-    "@types/request-promise": "^4.1.47",
-    "@types/uuid": "^8.3.0",
-    "typescript": "^5.5.4"
-  }
+	"name": "request101",
+	"version": "1.0.0",
+	"description": "Request based Wizard101 quiz bot.",
+	"main": "src/index.js",
+	"scripts": {
+		"start": "tsc && node --env-file=.env src/index.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "ISC",
+	"type": "module",
+	"dependencies": {
+		"cheerio": "^1.0.0-rc.10",
+		"console-stamp": "^3.0.2",
+		"events": "^3.3.0",
+		"got": "^12.6.1",
+		"tough-cookie": "^4.1.4",
+		"uuid": "^10.0.0"
+	},
+	"devDependencies": {
+		"@types/cheerio": "^0.22.35",
+		"@types/events": "^3.0.0",
+		"@types/tough-cookie": "^4.0.5",
+		"@types/uuid": "^8.3.0",
+		"typescript": "^5.5.4"
+	}
 }

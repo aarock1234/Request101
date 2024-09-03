@@ -1,18 +1,15 @@
-import consoleStamp from 'console-stamp';
-import request from 'request';
+import { CookieJar } from 'tough-cookie';
 import { v4 } from 'uuid';
 
-import { LoginAndComplete } from './classes/login';
-import { QuizOptions } from './interface';
-
-consoleStamp(console, 'HH:MM:ss.l' as any);
+import { LoginAndComplete } from './classes/login.js';
+import { QuizOptions } from './interface.js';
 
 if (process.env.verbose?.toLowerCase() === 'false') {
 	console.info = function () {};
 }
 
 (async () => {
-	if (!process.env.username || !process.env.password) {
+	if (!process.env.wizard_username || !process.env.wizard_password) {
 		console.error('Please provide a username and password in the .env file');
 		process.exit(1);
 	}
@@ -23,7 +20,7 @@ if (process.env.verbose?.toLowerCase() === 'false') {
 	}
 
 	const options: QuizOptions = {
-		Cookies: request.jar(),
+		Cookies: new CookieJar(),
 		ID: v4(),
 	};
 	new LoginAndComplete(options);

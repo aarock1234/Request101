@@ -1,14 +1,14 @@
 import { EventEmitter } from 'events';
-import requestPromise, { Options } from 'request-promise';
+import got, { Got, Response } from 'got';
 
-import { CaptchaProperties, CaptchaRequest, CaptchaResponse } from '../interface';
-import { sleep } from '../utils/utils';
+import { CaptchaProperties, CaptchaRequest, CaptchaResponse } from '../interface.js';
+import { sleep } from '../utils/utils.js';
 
 export async function getCaptcha(request: CaptchaRequest): Promise<CaptchaResponse> {
 	return new Promise((resolve) => {
 		console.log('Queued Captcha for CapSolver (Wait 15-45 seconds)');
 
-		const capSolverRequest: CapSolver = new CapSolver(process.env.capsolver, request);
+		const capSolverRequest: CapSolver = new CapSolver(process.env.capsolver ?? '', request);
 
 		capSolverRequest.on('complete', (response: CaptchaResponse) => {
 			resolve(response);
@@ -18,10 +18,10 @@ export async function getCaptcha(request: CaptchaRequest): Promise<CaptchaRespon
 
 class CapSolver extends EventEmitter {
 	key: string;
-	cap: CaptchaRequest;
-	properties: CaptchaProperties;
-	queueToken: string;
-	recaptchaResponse: string;
+	cap: CaptchaRequest = {} as CaptchaRequest;
+	properties: CaptchaProperties = {} as CaptchaProperties;
+	queueToken: string = '';
+	recaptchaResponse: string = '';
 	in: string = 'https://api.capsolver.com/createTask';
 	out: string = 'https://api.capsolver.com/getTaskResult';
 	constructor(key: string, request: CaptchaRequest) {
@@ -34,36 +34,34 @@ class CapSolver extends EventEmitter {
 
 	async requestToken(): Promise<string> {
 		let token: string;
-		let requestOptions: Options = {
-			url: this.in,
-			json: {
-				clientKey: this.key,
-				task: {
-					type: null,
-					websiteURL: this.properties.url,
-					websiteKey: this.properties.sitekey,
-				},
-			},
-			gzip: true,
-			resolveWithFullResponse: true,
-		};
+		let taskType: string = '';
 
 		switch (this.cap.type) {
 			case 1:
 			case 2:
-				requestOptions.json.task.type = 'ReCaptchaV2TaskProxyLess';
+				taskType = 'ReCaptchaV2TaskProxyLess';
 				break;
 			case 3:
 			case 4:
-				requestOptions.json.task.type = 'ReCaptchaV3TaskProxyLess';
+				taskType = 'ReCaptchaV3TaskProxyLess';
 				break;
 			case 5:
-				requestOptions.json.task.type = 'HCaptchaTaskProxyLess';
+				taskType = 'HCaptchaTaskProxyLess';
 				break;
 		}
 
-		const response: Response = await requestPromise.post(requestOptions);
-		token = (response.body as any).taskId;
+		const response: Response<string> = await got.post(this.in, {
+			json: {
+				clientKey: this.key,
+				task: {
+					type: taskType,
+					websiteURL: this.properties.url,
+					websiteKey: this.properties.sitekey,
+				},
+			},
+			decompress: true,
+		});
+		token = JSON.parse(response.body).taskId;
 
 		!token
 			? (() => {
@@ -76,31 +74,25 @@ class CapSolver extends EventEmitter {
 
 	async getResponse(): Promise<string> {
 		let recaptchaResponse: string;
-		let requestOptions: Options = {
-			url: this.out,
+		const response = await got.post(this.out, {
 			json: {
 				clientKey: this.key,
 				taskId: this.queueToken,
 			},
-			gzip: true,
-			resolveWithFullResponse: true,
-		};
+		});
+		const data = JSON.parse(response.body);
 
-		const response: Response = await requestPromise.post(requestOptions);
-
-		switch ((response.body as any).status) {
+		switch (data.status) {
 			case 'processing':
 				await sleep(2000);
 				return this.getResponse();
 			case 'ready':
-				recaptchaResponse = (response.body as any).solution.gRecaptchaResponse;
+				recaptchaResponse = data.solution.gRecaptchaResponse;
 				break;
 			default:
 				console.log(response.body);
 				throw new Error(
-					'(CapSolver) Captcha Failed to Solve [2] (Status: ' +
-						(response.body as any).status +
-						')'
+					'(CapSolver) Captcha Failed to Solve [2] (Status: ' + data.status + ')'
 				);
 		}
 
@@ -110,7 +102,7 @@ class CapSolver extends EventEmitter {
 	async getCaptcha(cap: CaptchaRequest): Promise<boolean> {
 		try {
 			this.cap = cap;
-			this.properties = cap.properties;
+			this.properties = cap.properties ?? {};
 			this.queueToken = await this.requestToken();
 			this.recaptchaResponse = await this.getResponse();
 
@@ -119,7 +111,8 @@ class CapSolver extends EventEmitter {
 				token: this.recaptchaResponse,
 			});
 		} catch (error) {
-			console.error(error.message);
+			console.error((error as any).message);
+			process.exit(1);
 			return this.getCaptcha(cap);
 		}
 	}

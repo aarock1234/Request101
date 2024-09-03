@@ -1,13 +1,12 @@
 import { EventEmitter } from 'events';
-import { Headers, Response } from 'request';
-import request, { RequestPromiseAPI } from 'request-promise';
+import { Cookie } from 'tough-cookie';
+import got, { Got, Response } from 'got';
 import * as cheerio from 'cheerio';
 
-import { getAnswer } from '../answer';
-import { QuizOptions } from '../interface';
-import { CaptchaRequest, CaptchaResponse } from '../interface';
-import { getCaptcha } from './captcha';
-import { sleep } from '../utils/utils';
+import { getAnswer } from '../answer.js';
+import { QuizOptions, CaptchaRequest, CaptchaResponse } from '../interface.js';
+import { getCaptcha } from './captcha.js';
+import { sleep } from '../utils/utils.js';
 
 interface Answer {
 	questionId: string;
@@ -19,7 +18,7 @@ interface Answer {
 
 export class Quiz extends EventEmitter {
 	options: QuizOptions;
-	client: RequestPromiseAPI<any>;
+	client: Got;
 	id: string;
 	quizList: Array<string> = [
 		'wizard101:adventuring',
@@ -33,8 +32,8 @@ export class Quiz extends EventEmitter {
 		'wizard101:wizard-city',
 		'wizard101:zafaria',
 	];
-	postHeaders: Headers = {
-		Host: 'www.wizard101.com',
+	postHeaders = {
+		host: 'www.wizard101.com',
 		'cache-control': 'max-age=0',
 		'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
 		'sec-ch-ua-mobile': '?0',
@@ -51,35 +50,12 @@ export class Quiz extends EventEmitter {
 		referer: 'https://www.wizard101.com/quiz/trivia/game/wizard101-adventuring-trivia',
 		'accept-language': 'en-US,en;q=0.9',
 	};
-	constructor(options: QuizOptions) {
+	constructor(options: QuizOptions, client: Got) {
 		super();
 
 		this.options = options;
 		this.id = options.ID;
-
-		this.client = request.defaults({
-			jar: options.Cookies,
-			followAllRedirects: true,
-			resolveWithFullResponse: true,
-			simple: false,
-			gzip: true,
-			headers: {
-				Host: 'www.wizard101.com',
-				'cache-control': 'max-age=0',
-				'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
-				'sec-ch-ua-mobile': '?0',
-				'upgrade-insecure-requests': '1',
-				'user-agent':
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36',
-				accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-				'sec-fetch-site': 'same-origin',
-				'sec-fetch-mode': 'navigate',
-				'sec-fetch-user': '?1',
-				'sec-fetch-dest': 'document',
-				referer: 'https://www.wizard101.com/game/trivia',
-				'accept-language': 'en-US,en;q=0.9',
-			},
-		});
+		this.client = client;
 
 		(async () => {
 			for (const quiz of this.quizList) {
@@ -88,7 +64,7 @@ export class Quiz extends EventEmitter {
 		})();
 	}
 
-	async parseAnswer(response: Response): Promise<Answer> {
+	async parseAnswer(response: Response<string>): Promise<Answer> {
 		const $: cheerio.Root = cheerio.load(response.body);
 		const question: string = $('.quizQuestion').text();
 		const questionId: string = $('#questionId').val() as string;
@@ -97,8 +73,8 @@ export class Quiz extends EventEmitter {
 		}
 		console.log(`Found Question [${questionId}]: ${question}`);
 
-		const answer: string = getAnswer(question);
-		let answerTextElement: cheerio.Element;
+		const answer: string = getAnswer(question) || '';
+		let answerTextElement: cheerio.Element = {} as cheerio.Element;
 		$('.answerText').each((_, answerTextElem) => {
 			if ($(answerTextElem).text().includes(answer)) {
 				answerTextElement = answerTextElem;
@@ -118,10 +94,10 @@ export class Quiz extends EventEmitter {
 		console.info(`Found 't:formdata' Value: ${tFormData}`);
 		console.info(`Found 't:ac' Value: ${tAC}`);
 
-		const stk: string =
-			this.options.Cookies.getCookies('https://www.wizard101.com/').find(
-				(cookie) => cookie.key == 'stk'
-			)?.value || '';
+		const cookies: Cookie[] = await this.options.Cookies.getCookies(
+			'https://www.wizard101.com/'
+		);
+		const stk: string = cookies.find((cookie) => cookie.key == 'stk')?.value || '';
 
 		console.info(`Found 'stk' Value: ${stk}`);
 
@@ -134,9 +110,8 @@ export class Quiz extends EventEmitter {
 		} as Answer;
 	}
 
-	async submitAnswer(answer: Answer): Promise<Response> {
-		return this.client.post({
-			url: 'https://www.wizard101.com/quiz/trivia.dynamic.quizform.quizform',
+	async submitAnswer(answer: Answer): Promise<Response<string>> {
+		return this.client.post('https://www.wizard101.com/quiz/trivia.dynamic.quizform.quizform', {
 			headers: this.postHeaders,
 			form: {
 				't:ac': answer.tAC,
@@ -153,7 +128,7 @@ export class Quiz extends EventEmitter {
 	async getPopup(): Promise<Answer> {
 		console.log('Getting Popup');
 
-		const response: Response = await this.client.get(
+		const response: Response<string> = await this.client.get(
 			'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION'
 		);
 
@@ -188,27 +163,29 @@ export class Quiz extends EventEmitter {
 			console.info(`Got Captcha: ${captchaToken}`);
 		}
 
-		const stk: string =
-			this.options.Cookies.getCookies('https://www.wizard101.com/').find(
-				(cookie) => cookie.key == 'stk'
-			)?.value || '';
+		const cookies: Cookie[] = await this.options.Cookies.getCookies(
+			'https://www.wizard101.com/'
+		);
+		const stk: string = cookies.find((cookie) => cookie.key == 'stk')?.value || '';
 
 		console.log('Submitting Login Captcha');
 
-		const response: Response = await this.client.post({
-			url: 'https://www.wizard101.com/auth/popup/loginwithcaptcha.theform',
-			form: {
-				't:ac': tInfo.tAC,
-				't:submit': 'login',
-				stk,
-				't:formdata': tInfo.tFormData,
-				fpShowRegister: false,
-				captchaToken: captchaToken,
-				'g-recaptcha-response': captchaToken,
-				login: '',
-			},
-			headers: this.postHeaders,
-		});
+		const response: Response<string> = await this.client.post(
+			'https://www.wizard101.com/auth/popup/loginwithcaptcha.theform',
+			{
+				form: {
+					't:ac': tInfo.tAC,
+					't:submit': 'login',
+					stk,
+					't:formdata': tInfo.tFormData,
+					fpShowRegister: false,
+					captchaToken: captchaToken,
+					'g-recaptcha-response': captchaToken,
+					login: '',
+				},
+				headers: this.postHeaders,
+			}
+		);
 
 		if (response.statusCode != 200) {
 			console.error('Error Submitting Captcha, retrying...');
@@ -226,8 +203,13 @@ export class Quiz extends EventEmitter {
 		let game: string = quiz.split(':')[0];
 		quiz = quiz.split(':')[1];
 
-		let response: Response = await this.client.get(
-			`https://www.wizard101.com/quiz/trivia/game/${game}-${quiz}-trivia`
+		console.log(this.options.Cookies.getCookies('https://www.wizard101.com/'));
+
+		let response: Response<string> = await this.client.get(
+			`https://www.wizard101.com/quiz/trivia/game/${game}-${quiz}-trivia`,
+			{
+				cookieJar: this.options.Cookies,
+			}
 		);
 
 		if (response.body.includes('Come Back Tomorrow')) {
@@ -235,13 +217,13 @@ export class Quiz extends EventEmitter {
 			return;
 		}
 
-		if (!response.body.includes(process.env.username)) {
+		if (!response.body.includes(process.env.wizard_username as string)) {
 			console.log('Invalid username/password.');
 			process.exit(1);
 		}
 
 		let promises: Array<Promise<void>> = [];
-		let captchaToken: string;
+		let captchaToken: string = '';
 
 		promises.push(
 			new Promise(async (resolve) => {
@@ -266,11 +248,6 @@ export class Quiz extends EventEmitter {
 			new Promise(async (resolve) => {
 				let quizDone: boolean = false;
 				do {
-					if (!response.body.includes(process.env.username)) {
-						console.log('Invalid username/password.');
-						process.exit(1);
-					}
-
 					const answer: Answer = await this.parseAnswer(response);
 					if (!answer.questionId || !answer.answerId) {
 						console.log(`Unable to Parse Question in ${quiz} Quiz`);
@@ -296,7 +273,10 @@ export class Quiz extends EventEmitter {
 		await this.submitLoginCaptcha(tInfo, captchaToken);
 
 		response = await this.client.get(
-			`https://www.wizard101.com/quiz/trivia/game/wizard101-${quiz}-trivia`
+			`https://www.wizard101.com/quiz/trivia/game/wizard101-${quiz}-trivia`,
+			{
+				cookieJar: this.options.Cookies,
+			}
 		);
 
 		const $: cheerio.Root = cheerio.load(response.body);

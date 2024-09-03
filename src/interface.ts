@@ -1,8 +1,7 @@
-import { CookieJar } from 'request';
-
+import { CookieJar } from 'tough-cookie';
 export interface QuizOptions {
-    Cookies: CookieJar;
-    ID: string;
+	Cookies: CookieJar;
+	ID: string;
 }
 
 export interface CaptchaProperties {
