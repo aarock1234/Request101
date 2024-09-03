@@ -69,8 +69,6 @@ export class LoginAndComplete extends EventEmitter {
 			cookieJar: this.options.Cookies,
 		});
 
-		console.log(this.options.Cookies.getCookies('https://www.wizard101.com/'), '1');
-
 		const $: cheerio.Root = cheerio.load(response.body);
 		this.tFormData = $('input[name="t:formdata"]').val() as string;
 		this.tAC = $('input[name="t:ac"]').val() as string;
