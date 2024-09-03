@@ -203,8 +203,6 @@ export class Quiz extends EventEmitter {
 		let game: string = quiz.split(':')[0];
 		quiz = quiz.split(':')[1];
 
-		console.log(this.options.Cookies.getCookies('https://www.wizard101.com/'));
-
 		let response: Response<string> = await this.client.get(
 			`https://www.wizard101.com/quiz/trivia/game/${game}-${quiz}-trivia`,
 			{

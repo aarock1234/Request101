@@ -114,8 +114,6 @@ export class LoginAndComplete extends EventEmitter {
 		if (response.body.includes(process.env.wizard_username as string)) {
 			console.log('Successfully Logged in!');
 		}
-
-		await this.getHomepage();
 	}
 
 	async getPopup(): Promise<void> {
