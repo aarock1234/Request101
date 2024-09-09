@@ -260,7 +260,7 @@ export class Quiz extends EventEmitter {
 						quizDone = true;
 					}
 				} while (!quizDone);
-				console.log(`Completed ${quiz} Quiz`);
+				console.log(`Completed ${quiz} quiz`);
 				resolve();
 			})
 		);
@@ -271,7 +271,7 @@ export class Quiz extends EventEmitter {
 		await this.submitLoginCaptcha(tInfo, captchaToken);
 
 		response = await this.client.get(
-			`https://www.wizard101.com/quiz/trivia/game/wizard101-${quiz}-trivia`,
+			`https://www.wizard101.com/quiz/trivia/game/${game}-${quiz}-trivia`,
 			{
 				cookieJar: this.options.Cookies,
 			}
@@ -280,7 +280,7 @@ export class Quiz extends EventEmitter {
 		const $: cheerio.Root = cheerio.load(response.body);
 		const quizScore: string = $('.quizScore').text();
 
-		console.log(`Completed ${quiz} Quiz: ${quizScore}`);
+		console.log(`Submitted ${quiz} quiz: ${quizScore}`);
 
 		return;
 	}

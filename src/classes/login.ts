@@ -81,7 +81,7 @@ export class LoginAndComplete extends EventEmitter {
 	}
 
 	async submitLogin(): Promise<void> {
-		console.log('Submitting Login');
+		console.log('Submitting login for user: ' + process.env.wizard_username);
 
 		const response: Response<string> = await this.client.post(
 			'https://www.wizard101.com/home2.dynamic.sidemenuwizard.loginform',
