@@ -6,7 +6,7 @@ import { sleep } from '../utils/utils.js';
 
 export async function getCaptcha(request: CaptchaRequest): Promise<CaptchaResponse> {
 	return new Promise((resolve) => {
-		console.log('Queued Captcha for CapSolver (Wait 15-45 seconds)');
+		console.log('Queued captcha solve (takes up to 60 seconds)');
 
 		const capSolverRequest: CapSolver = new CapSolver(process.env.capsolver ?? '', request);
 
@@ -63,11 +63,9 @@ class CapSolver extends EventEmitter {
 		});
 		token = JSON.parse(response.body).taskId;
 
-		!token
-			? (() => {
-					throw new Error('(CapSolver) Captcha Failed to Solve [1]');
-			  })()
-			: null;
+		if (!token) {
+			throw new Error('Captcha failed to solve (1)');
+		}
 
 		return token;
 	}
@@ -90,7 +88,6 @@ class CapSolver extends EventEmitter {
 				recaptchaResponse = data.solution.gRecaptchaResponse;
 				break;
 			default:
-				console.log(response.body);
 				throw new Error(`Captcha failed to solve (2): ${data.status}`);
 		}
 
