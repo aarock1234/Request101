@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import got, { Got, Response } from 'got';
+import got, { Response } from 'got';
 
 import { CaptchaProperties, CaptchaRequest, CaptchaResponse } from '../interface.js';
 import { sleep } from '../utils/utils.js';
@@ -91,9 +91,7 @@ class CapSolver extends EventEmitter {
 				break;
 			default:
 				console.log(response.body);
-				throw new Error(
-					'(CapSolver) Captcha Failed to Solve [2] (Status: ' + data.status + ')'
-				);
+				throw new Error(`Captcha failed to solve (2): ${data.status}`);
 		}
 
 		return recaptchaResponse;
@@ -112,7 +110,6 @@ class CapSolver extends EventEmitter {
 			});
 		} catch (error) {
 			console.error((error as any).message);
-			process.exit(1);
 			return this.getCaptcha(cap);
 		}
 	}

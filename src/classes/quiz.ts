@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { Cookie } from 'tough-cookie';
-import got, { Got, Response } from 'got';
+import { Got, Response } from 'got';
 import * as cheerio from 'cheerio';
 
 import { getAnswer } from '../answer.js';
@@ -71,7 +71,7 @@ export class Quiz extends EventEmitter {
 		if (!question) {
 			return {} as Answer;
 		}
-		console.log(`Found Question [${questionId}]: ${question}`);
+		console.log(`Found question (${questionId}): ${question}`);
 
 		const answer: string = getAnswer(question) || '';
 		let answerTextElement: cheerio.Element = {} as cheerio.Element;
@@ -87,7 +87,7 @@ export class Quiz extends EventEmitter {
 			.children()
 			.eq(1)
 			.val() as string;
-		console.log(`Found Answer [${answerId}]: ${answer}`);
+		console.log(`Found answer (${answerId}): ${answer}`);
 
 		const tFormData: string = $('input[name="t:formdata"]').val() as string;
 		const tAC: string = $('input[name="t:ac"]').val() as string;
@@ -99,7 +99,7 @@ export class Quiz extends EventEmitter {
 		);
 		const stk: string = cookies.find((cookie) => cookie.key == 'stk')?.value || '';
 
-		console.info(`Found 'stk' Value: ${stk}`);
+		console.info(`Found 'stk' value (${stk})`);
 
 		return {
 			questionId,
@@ -126,7 +126,7 @@ export class Quiz extends EventEmitter {
 	}
 
 	async getPopup(): Promise<Answer> {
-		console.log('Getting Popup');
+		console.log('Getting quiz captcha popup');
 
 		const response: Response<string> = await this.client.get(
 			'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION'
@@ -146,7 +146,7 @@ export class Quiz extends EventEmitter {
 
 	async submitLoginCaptcha(tInfo: Answer, captchaToken?: string): Promise<void> {
 		if (!captchaToken) {
-			console.log('Getting Captcha');
+			console.log('Getting captcha');
 
 			const captchaRequest: CaptchaRequest = {
 				id: this.id,
@@ -160,7 +160,7 @@ export class Quiz extends EventEmitter {
 
 			const gRecaptchaResponse: CaptchaResponse = await getCaptcha(captchaRequest);
 			captchaToken = gRecaptchaResponse.token;
-			console.info(`Got Captcha: ${captchaToken}`);
+			console.info(`Got captcha: ${captchaToken}`);
 		}
 
 		const cookies: Cookie[] = await this.options.Cookies.getCookies(
@@ -168,7 +168,7 @@ export class Quiz extends EventEmitter {
 		);
 		const stk: string = cookies.find((cookie) => cookie.key == 'stk')?.value || '';
 
-		console.log('Submitting Login Captcha');
+		console.log('Submitting login captcha');
 
 		const response: Response<string> = await this.client.post(
 			'https://www.wizard101.com/auth/popup/loginwithcaptcha.theform',
@@ -188,20 +188,20 @@ export class Quiz extends EventEmitter {
 		);
 
 		if (response.statusCode != 200) {
-			console.error('Error Submitting Captcha, retrying...');
+			console.error('Error submitting captcha, retrying...');
 			tInfo = await this.getPopup();
 			return this.submitLoginCaptcha(tInfo);
 		}
 
-		console.log('Successfully Submitted Captcha');
+		console.log('Successfully submitted captcha');
 	}
 
 	async startQuiz(quiz: string) {
-		console.log(`Starting ${quiz} Quiz`);
-
 		let originalQuiz: string = quiz;
 		let game: string = quiz.split(':')[0];
 		quiz = quiz.split(':')[1];
+
+		console.log(`Starting ${game} ${quiz} quiz`);
 
 		let response: Response<string> = await this.client.get(
 			`https://www.wizard101.com/quiz/trivia/game/${game}-${quiz}-trivia`,
@@ -236,7 +236,7 @@ export class Quiz extends EventEmitter {
 				};
 
 				const gRecaptchaResponse: CaptchaResponse = await getCaptcha(captchaRequest);
-				console.info(`Got Captcha: ${gRecaptchaResponse.token}`);
+				console.info(`Got captcha (${gRecaptchaResponse.token})`);
 				captchaToken = gRecaptchaResponse.token;
 				resolve();
 			})
@@ -248,7 +248,7 @@ export class Quiz extends EventEmitter {
 				do {
 					const answer: Answer = await this.parseAnswer(response);
 					if (!answer.questionId || !answer.answerId) {
-						console.log(`Unable to Parse Question in ${quiz} Quiz`);
+						console.log(`Unable to parse question in ${quiz} quiz`);
 						return this.startQuiz(originalQuiz);
 					}
 
@@ -260,7 +260,7 @@ export class Quiz extends EventEmitter {
 						quizDone = true;
 					}
 				} while (!quizDone);
-				console.log(`Completed ${quiz} quiz`);
+				console.log(`Completed ${game} ${quiz} quiz`);
 				resolve();
 			})
 		);
@@ -280,7 +280,7 @@ export class Quiz extends EventEmitter {
 		const $: cheerio.Root = cheerio.load(response.body);
 		const quizScore: string = $('.quizScore').text();
 
-		console.log(`Submitted ${quiz} quiz: ${quizScore}`);
+		console.log(`Submitted ${game} ${quiz} quiz: ${quizScore}`);
 
 		return;
 	}

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import * as cheerio from 'cheerio';
 import { v4 as uuidv4 } from 'uuid';
 import got, { Got, Response } from 'got';
+import * as cheerio from 'cheerio';
 
 import { QuizOptions } from '../interface.js';
 import { getCaptcha } from './captcha.js';
@@ -63,7 +63,7 @@ export class LoginAndComplete extends EventEmitter {
 	}
 
 	async getHomepage(): Promise<void> {
-		console.log('Getting Homepage');
+		console.log('Getting homepage');
 
 		const response = await this.client.get('https://www.wizard101.com/game', {
 			cookieJar: this.options.Cookies,
@@ -100,22 +100,22 @@ export class LoginAndComplete extends EventEmitter {
 		);
 
 		if (response.statusCode != 200) {
-			console.error('Error Submitting Login, retrying...');
+			console.error('Error submitting login, retrying...');
 			return this.submitLogin();
 		}
 
 		if (response.headers['set-cookie']?.find((cookie) => cookie.includes('LOGIN_FAILURE'))) {
-			console.error('Failed to Login!');
+			console.error('Failed to login!');
 			process.exit(1);
 		}
 
 		if (response.body.includes(process.env.wizard_username as string)) {
-			console.log('Successfully Logged in!');
+			console.log('Successfully logged in!');
 		}
 	}
 
 	async getPopup(): Promise<void> {
-		console.log('Getting Popup');
+		console.log('Getting login captcha popup');
 
 		const response: Response<string> = await this.client.get(
 			'https://www.wizard101.com/auth/popup/QuarantinedLogin/game?fpRedirectUrl=%2Fgame&reset=1&fpPopup=1',
@@ -132,7 +132,7 @@ export class LoginAndComplete extends EventEmitter {
 	}
 
 	async submitLoginCaptcha(): Promise<void> {
-		console.log('Getting Captcha');
+		console.log('Getting captcha');
 
 		const captchaRequest: CaptchaRequest = {
 			id: this.id,
@@ -145,9 +145,9 @@ export class LoginAndComplete extends EventEmitter {
 		};
 
 		this.gRecaptchaResponse = await getCaptcha(captchaRequest);
-		console.info(`Got Captcha: ${this.gRecaptchaResponse.token}`);
+		console.info(`Got captcha: ${this.gRecaptchaResponse.token}`);
 
-		console.log('Submitting Login Captcha');
+		console.log('Submitting login captcha');
 
 		const response: Response<string> = await this.client.post(
 			'https://www.wizard101.com/auth/popup/quarantinedlogin.theform',
@@ -170,12 +170,12 @@ export class LoginAndComplete extends EventEmitter {
 		);
 
 		if (response.statusCode != 200) {
-			console.error('Error Submitting Login, retrying...');
+			console.error('Error submitting login, retrying...');
 			this.getPopup();
 			return this.submitLoginCaptcha();
 		}
 
-		console.log('Successfully Submitted Captcha');
+		console.log('Successfully submitted captcha');
 	}
 
 	async flow() {
