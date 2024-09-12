@@ -7,6 +7,17 @@
 0. This is an old project of mine and the code is messy. It is not indicative of my current work as an engineer.
 1. If using FAST_CAPTCHA=true, you must also set a delay around 1000ms to avoid getting banned.
 
+## Configuration
+
+Use the example `.env` file to create your own `.env` file:
+
+-   `VERBOSE`: Set to `true` to enable verbose logging, `false` to disable. Default is `false`.
+-   `DELAY`: The delay in milliseconds between quiz answers. Default is `1000`.
+-   `CAPSOLVER`: Your CapSolver API key. Required for solving captchas.
+-   `FAST_CAPTCHA`: Set to `true` to use fast captcha solving, `false` for standard speed. Default is `false`.
+-   `WIZARD_USERNAME`: Your Wizard101 username.
+-   `WIZARD_PASSWORD`: Your Wizard101 password.
+
 ## Setup
 
 > **How do I setup and use this thing?**
