@@ -63,7 +63,7 @@ export class LoginAndComplete extends EventEmitter {
 	}
 
 	async getHomepage(): Promise<void> {
-		console.log('Getting homepage');
+		console.log('getting homepage');
 
 		const response = await this.client.get('https://www.wizard101.com/game', {
 			cookieJar: this.options.Cookies,
@@ -75,13 +75,13 @@ export class LoginAndComplete extends EventEmitter {
 		this.stk =
 			response.headers['set-cookie']?.find((cookie: string) => cookie.includes('stk')) ?? '';
 
-		console.info(`Found 't:stk' value: ${this.stk ?? ''}`);
-		console.info(`Found 't:formdata' Value: ${this.tFormData}`);
-		console.info(`Found 't:ac' Value: ${this.tAC}`);
+		console.info(`found 't:stk' value: ${this.stk ?? ''}`);
+		console.info(`found 't:formdata' value: ${this.tFormData}`);
+		console.info(`found 't:ac' value: ${this.tAC}`);
 	}
 
 	async submitLogin(): Promise<void> {
-		console.log('Submitting login for user: ' + process.env.wizard_username);
+		console.log('submitting login for user: ' + process.env.wizard_username);
 
 		const response: Response<string> = await this.client.post(
 			'https://www.wizard101.com/home2.dynamic.sidemenuwizard.loginform',
@@ -100,22 +100,22 @@ export class LoginAndComplete extends EventEmitter {
 		);
 
 		if (response.statusCode != 200) {
-			console.error('Error submitting login, retrying...');
+			console.error('error submitting login, retrying...');
 			return this.submitLogin();
 		}
 
 		if (response.headers['set-cookie']?.find((cookie) => cookie.includes('LOGIN_FAILURE'))) {
-			console.error('Failed to login!');
+			console.error('failed to login!');
 			process.exit(1);
 		}
 
 		if (response.body.includes(process.env.wizard_username as string)) {
-			console.log('Successfully logged in!');
+			console.log('successfully logged in!');
 		}
 	}
 
 	async getPopup(): Promise<void> {
-		console.log('Getting login captcha popup');
+		console.log('getting login captcha popup');
 
 		const response: Response<string> = await this.client.get(
 			'https://www.wizard101.com/auth/popup/QuarantinedLogin/game?fpRedirectUrl=%2Fgame&reset=1&fpPopup=1',
@@ -127,12 +127,12 @@ export class LoginAndComplete extends EventEmitter {
 		const $: cheerio.Root = cheerio.load(response.body);
 		this.tFormData = $('input[name="t:formdata"]').val() as string;
 		this.tAC = $('input[name="t:ac"]').val() as string;
-		console.info(`Found 't:formdata' Value: ${this.tFormData}`);
-		console.info(`Found 't:ac' Value: ${this.tAC}`);
+		console.info(`found 't:formdata' value: ${this.tFormData}`);
+		console.info(`found 't:ac' value: ${this.tAC}`);
 	}
 
 	async submitLoginCaptcha(): Promise<void> {
-		console.log('Getting captcha');
+		console.log('getting captcha');
 
 		const captchaRequest: CaptchaRequest = {
 			id: this.id,
@@ -145,9 +145,9 @@ export class LoginAndComplete extends EventEmitter {
 		};
 
 		this.gRecaptchaResponse = await getCaptcha(captchaRequest);
-		console.info(`Got captcha: ${this.gRecaptchaResponse.token}`);
+		console.info(`got captcha: ${this.gRecaptchaResponse.token}`);
 
-		console.log('Submitting login captcha');
+		console.log('submitting login captcha');
 
 		const response: Response<string> = await this.client.post(
 			'https://www.wizard101.com/auth/popup/quarantinedlogin.theform',
@@ -170,12 +170,12 @@ export class LoginAndComplete extends EventEmitter {
 		);
 
 		if (response.statusCode != 200) {
-			console.error('Error submitting login, retrying...');
+			console.error('error submitting login, retrying...');
 			this.getPopup();
 			return this.submitLoginCaptcha();
 		}
 
-		console.log('Successfully submitted captcha');
+		console.log('successfully submitted captcha');
 	}
 
 	async flow() {

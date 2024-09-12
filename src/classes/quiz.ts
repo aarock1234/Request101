@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { Cookie } from 'tough-cookie';
 import { Got, Response } from 'got';
+import { v4 } from 'uuid';
 import * as cheerio from 'cheerio';
 
 import { getAnswer } from '../answer.js';
@@ -50,12 +51,32 @@ export class Quiz extends EventEmitter {
 		referer: 'https://www.wizard101.com/quiz/trivia/game/wizard101-adventuring-trivia',
 		'accept-language': 'en-US,en;q=0.9',
 	};
+	captchaBank: CaptchaResponse[] = [];
 	constructor(options: QuizOptions, client: Got) {
 		super();
 
 		this.options = options;
 		this.id = options.ID;
 		this.client = client;
+
+		if (process.env.FAST_CAPTCHA?.toLowerCase() === 'true') {
+			for (let i = 0; i < this.quizList.length; i++) {
+				(async () => {
+					const captchaRequest: CaptchaRequest = {
+						id: v4(),
+						type: 2,
+						site: 'Wizard101',
+						properties: {
+							url: 'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION',
+							sitekey: '6LfUFE0UAAAAAGoVniwSC9-MtgxlzzAb5dnr9WWY',
+						},
+					};
+
+					const captcha: CaptchaResponse = await getCaptcha(captchaRequest);
+					this.captchaBank.push(captcha);
+				})();
+			}
+		}
 
 		(async () => {
 			for (const quiz of this.quizList) {
@@ -71,7 +92,7 @@ export class Quiz extends EventEmitter {
 		if (!question) {
 			return {} as Answer;
 		}
-		console.log(`Found question (${questionId}): ${question}`);
+		console.log(`found question (${questionId}): ${question}`);
 
 		const answer: string = getAnswer(question) || '';
 		let answerTextElement: cheerio.Element = {} as cheerio.Element;
@@ -87,19 +108,19 @@ export class Quiz extends EventEmitter {
 			.children()
 			.eq(1)
 			.val() as string;
-		console.log(`Found answer (${answerId}): ${answer}`);
+		console.log(`found answer (${answerId}): ${answer}`);
 
 		const tFormData: string = $('input[name="t:formdata"]').val() as string;
 		const tAC: string = $('input[name="t:ac"]').val() as string;
-		console.info(`Found 't:formdata' Value: ${tFormData}`);
-		console.info(`Found 't:ac' Value: ${tAC}`);
+		console.info(`found 't:formdata' value: ${tFormData}`);
+		console.info(`found 't:ac' value: ${tAC}`);
 
 		const cookies: Cookie[] = await this.options.Cookies.getCookies(
 			'https://www.wizard101.com/'
 		);
 		const stk: string = cookies.find((cookie) => cookie.key == 'stk')?.value || '';
 
-		console.info(`Found 'stk' value (${stk})`);
+		console.info(`found 'stk' value (${stk})`);
 
 		return {
 			questionId,
@@ -126,7 +147,7 @@ export class Quiz extends EventEmitter {
 	}
 
 	async getPopup(): Promise<Answer> {
-		console.log('Getting quiz captcha popup');
+		console.log('getting quiz captcha popup');
 
 		const response: Response<string> = await this.client.get(
 			'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION'
@@ -135,8 +156,8 @@ export class Quiz extends EventEmitter {
 		const $: cheerio.Root = cheerio.load(response.body);
 		const tFormData = $('input[name="t:formdata"]').val() as string;
 		const tAC = $('input[name="t:ac"]').val() as string;
-		console.info(`Found 't:formdata' Value: ${tFormData}`);
-		console.info(`Found 't:ac' Value: ${tAC}`);
+		console.info(`found 't:formdata' value: ${tFormData}`);
+		console.info(`found 't:ac' value: ${tAC}`);
 
 		return {
 			tFormData,
@@ -146,7 +167,7 @@ export class Quiz extends EventEmitter {
 
 	async submitLoginCaptcha(tInfo: Answer, captchaToken?: string): Promise<void> {
 		if (!captchaToken) {
-			console.log('Getting captcha');
+			console.log('getting captcha');
 
 			const captchaRequest: CaptchaRequest = {
 				id: this.id,
@@ -160,7 +181,7 @@ export class Quiz extends EventEmitter {
 
 			const gRecaptchaResponse: CaptchaResponse = await getCaptcha(captchaRequest);
 			captchaToken = gRecaptchaResponse.token;
-			console.info(`Got captcha: ${captchaToken}`);
+			console.info(`got captcha: ${captchaToken}`);
 		}
 
 		const cookies: Cookie[] = await this.options.Cookies.getCookies(
@@ -168,7 +189,7 @@ export class Quiz extends EventEmitter {
 		);
 		const stk: string = cookies.find((cookie) => cookie.key == 'stk')?.value || '';
 
-		console.log('Submitting login captcha');
+		console.log('submitting login captcha');
 
 		const response: Response<string> = await this.client.post(
 			'https://www.wizard101.com/auth/popup/loginwithcaptcha.theform',
@@ -188,12 +209,12 @@ export class Quiz extends EventEmitter {
 		);
 
 		if (response.statusCode != 200) {
-			console.error('Error submitting captcha, retrying...');
+			console.error('error submitting captcha, retrying...');
 			tInfo = await this.getPopup();
 			return this.submitLoginCaptcha(tInfo);
 		}
 
-		console.log('Successfully submitted captcha');
+		console.log('successfully submitted captcha');
 	}
 
 	async startQuiz(quiz: string) {
@@ -201,7 +222,7 @@ export class Quiz extends EventEmitter {
 		let game: string = quiz.split(':')[0];
 		quiz = quiz.split(':')[1];
 
-		console.log(`Starting ${game} ${quiz} quiz`);
+		console.log(`starting ${game} ${quiz} quiz`);
 
 		let response: Response<string> = await this.client.get(
 			`https://www.wizard101.com/quiz/trivia/game/${game}-${quiz}-trivia`,
@@ -211,36 +232,50 @@ export class Quiz extends EventEmitter {
 		);
 
 		if (response.body.includes('Come Back Tomorrow')) {
-			console.log('Quiz already completed!');
+			console.log('quiz already completed!');
 			return;
 		}
 
 		if (!response.body.includes(process.env.wizard_username as string)) {
-			console.log('Invalid username/password.');
+			console.log('invalid username/password.');
 			process.exit(1);
 		}
 
 		let promises: Array<Promise<void>> = [];
 		let captchaToken: string = '';
 
-		promises.push(
-			new Promise(async (resolve) => {
-				const captchaRequest: CaptchaRequest = {
-					id: this.id,
-					type: 2,
-					site: 'Wizard101',
-					properties: {
-						url: 'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION',
-						sitekey: '6LfUFE0UAAAAAGoVniwSC9-MtgxlzzAb5dnr9WWY',
-					},
-				};
+		if (process.env.FAST_CAPTCHA?.toLowerCase() !== 'true') {
+			promises.push(
+				new Promise(async (resolve) => {
+					const captchaRequest: CaptchaRequest = {
+						id: this.id,
+						type: 2,
+						site: 'Wizard101',
+						properties: {
+							url: 'https://www.wizard101.com/auth/popup/LoginWithCaptcha/game?fpSessionAttribute=QUIZ_SESSION',
+							sitekey: '6LfUFE0UAAAAAGoVniwSC9-MtgxlzzAb5dnr9WWY',
+						},
+					};
 
-				const gRecaptchaResponse: CaptchaResponse = await getCaptcha(captchaRequest);
-				console.info(`Got captcha (${gRecaptchaResponse.token})`);
-				captchaToken = gRecaptchaResponse.token;
-				resolve();
-			})
-		);
+					const gRecaptchaResponse: CaptchaResponse = await getCaptcha(captchaRequest);
+					console.info(`got captcha (slow): ${gRecaptchaResponse.token}`);
+					captchaToken = gRecaptchaResponse.token;
+					resolve();
+				})
+			);
+		} else {
+			// wait for any captcha to appear in captchaBank
+			promises.push(
+				new Promise(async (resolve) => {
+					while (!captchaToken) {
+						captchaToken = this.captchaBank.shift()?.token || '';
+						await sleep(1000);
+					}
+					console.info(`got captcha (fast): ${captchaToken}`);
+					resolve();
+				})
+			);
+		}
 
 		promises.push(
 			new Promise(async (resolve) => {
@@ -248,7 +283,7 @@ export class Quiz extends EventEmitter {
 				do {
 					const answer: Answer = await this.parseAnswer(response);
 					if (!answer.questionId || !answer.answerId) {
-						console.log(`Unable to parse question in ${quiz} quiz`);
+						console.log(`unable to parse question in ${quiz} quiz`);
 						return this.startQuiz(originalQuiz);
 					}
 
@@ -260,7 +295,7 @@ export class Quiz extends EventEmitter {
 						quizDone = true;
 					}
 				} while (!quizDone);
-				console.log(`Completed ${game} ${quiz} quiz`);
+				console.log(`completed ${game} ${quiz} quiz`);
 				resolve();
 			})
 		);
@@ -280,7 +315,7 @@ export class Quiz extends EventEmitter {
 		const $: cheerio.Root = cheerio.load(response.body);
 		const quizScore: string = $('.quizScore').text();
 
-		console.log(`Submitted ${game} ${quiz} quiz: ${quizScore}`);
+		console.log(`submitted ${game} ${quiz} quiz: ${quizScore}`);
 
 		return;
 	}
