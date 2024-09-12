@@ -5,7 +5,7 @@
 ## Notes
 
 0. This is an old project of mine and the code is messy. It is not indicative of my current work as an engineer.
-1. If using FAST_CAPTCHA=true, you must also set a delay around 1000ms to avoid getting banned.
+1. If using `FAST_CAPTCHA=true`, you must also set a delay around `1000ms` to avoid getting banned.
 
 ## Configuration
 
