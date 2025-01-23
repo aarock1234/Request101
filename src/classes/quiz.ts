@@ -36,7 +36,7 @@ export class Quiz extends EventEmitter {
 	postHeaders = {
 		host: 'www.wizard101.com',
 		'cache-control': 'max-age=0',
-		'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
+		'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
 		'sec-ch-ua-mobile': '?0',
 		'upgrade-insecure-requests': '1',
 		origin: 'https://www.wizard101.com',
