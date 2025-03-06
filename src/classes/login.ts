@@ -80,7 +80,7 @@ export class LoginAndComplete extends EventEmitter {
 		console.info(`found 't:ac' value: ${this.tAC}`);
 	}
 
-	async submitLogin(): Promise<void> {
+	async submitLogin(): Promise<boolean> {
 		console.log('submitting login for user: ' + process.env.wizard_username);
 
 		const response: Response<string> = await this.client.post(
@@ -111,7 +111,10 @@ export class LoginAndComplete extends EventEmitter {
 
 		if (response.body.includes(process.env.wizard_username as string)) {
 			console.log('successfully logged in!');
+			return true;
 		}
+
+		return false;
 	}
 
 	async getPopup(): Promise<void> {
@@ -179,10 +182,12 @@ export class LoginAndComplete extends EventEmitter {
 	}
 
 	async flow() {
-		await this.getPopup();
-		await this.submitLoginCaptcha();
 		await this.getHomepage();
-		await this.submitLogin();
+		if (!(await this.submitLogin())) {
+			await this.getPopup();
+			await this.submitLoginCaptcha();
+		}
+		await this.getHomepage();
 
 		new Quiz(this.options, this.client);
 	}
