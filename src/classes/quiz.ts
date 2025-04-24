@@ -36,13 +36,14 @@ export class Quiz extends EventEmitter {
 	postHeaders = {
 		host: 'www.wizard101.com',
 		'cache-control': 'max-age=0',
-		'sec-ch-ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
+		'sec-ch-ua': '"Microsoft Edge";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
 		'sec-ch-ua-mobile': '?0',
 		'upgrade-insecure-requests': '1',
 		origin: 'https://www.wizard101.com',
+		dnt: '1',
 		'content-type': 'application/x-www-form-urlencoded',
 		'user-agent':
-			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0',
 		accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 		'sec-fetch-site': 'same-origin',
 		'sec-fetch-mode': 'navigate',
