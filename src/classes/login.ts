@@ -119,6 +119,8 @@ export class LoginAndComplete extends EventEmitter {
 			return true;
 		}
 
+		console.log('login requires captcha');
+
 		return false;
 	}
 
@@ -152,6 +154,7 @@ export class LoginAndComplete extends EventEmitter {
 			},
 		};
 
+		console.log('waiting for captcha response');
 		this.gRecaptchaResponse = await getCaptcha(captchaRequest);
 		console.info(`got captcha: ${this.gRecaptchaResponse.token}`);
 
@@ -189,7 +192,9 @@ export class LoginAndComplete extends EventEmitter {
 	async flow() {
 		await this.getHomepage();
 		if (!(await this.submitLogin())) {
+			console.log('getting login captcha popup');
 			await this.getPopup();
+			console.log('submitting login captcha');
 			await this.submitLoginCaptcha();
 		}
 		await this.getHomepage();
